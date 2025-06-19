@@ -10,7 +10,7 @@ pipeline {
         // Lấy mã nguồn từ GitHub
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/TrongNghiaFL1/SalesTSL.git', credentialsId: 'github-tokenn'
+                git branch: 'master', url: 'https://github.com/TrongNghiaFL1/SalesTSL.git', credentialsId: 'github-tokenn'
             }
         }
 
