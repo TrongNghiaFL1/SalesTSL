@@ -3,14 +3,14 @@ pipeline {
 
     environment {
         // Cấu hình GitHub token nếu cần (nếu bạn sử dụng GitHub)
-        GITHUB_TOKEN = credentials('github-token')
+        GITHUB_TOKEN = credentials('github-tokenn')
     }
 
     stages {
         // Lấy mã nguồn từ GitHub
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/TrongNghiaFL1/SalesTSL.git', credentialsId: 'github-token'
+                git branch: 'main', url: 'https://github.com/TrongNghiaFL1/SalesTSL.git', credentialsId: 'github-tokenn'
             }
         }
 
