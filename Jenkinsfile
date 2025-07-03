@@ -8,12 +8,6 @@ pipeline {
     }
     
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'master', url: 'https://github.com/TrongNghiaFL1/SalesTSL.git'
-            }
-        }
-        
         stage('Build and Deploy') {
             steps {
                 script {
@@ -50,10 +44,14 @@ pipeline {
                     // Tạo thư mục backup nếu chưa có
                     sh 'sudo mkdir -p ${BACKUP_DIR}'
                     
-                    // Chạy script backup
+                    // Chạy script backup nếu có
                     sh '''
-                        chmod +x backup_script.sh
-                        ./backup_script.sh
+                        if [ -f backup_script.sh ]; then
+                            chmod +x backup_script.sh
+                            ./backup_script.sh
+                        else
+                            echo "No backup script found, skipping backup"
+                        fi
                     '''
                 }
             }
@@ -62,7 +60,6 @@ pipeline {
     
     post {
         always {
-            // Dọn dẹp workspace
             cleanWs()
         }
         failure {
