@@ -3,17 +3,11 @@ pipeline {
     
     environment {
         DOCKER_COMPOSE_FILE = 'docker-compose.yml'
-        BACKUP_DIR = '/var/backups/webapp'
+        BACKUP_DIR = "${WORKSPACE}/backups"
         PROJECT_NAME = 'webapp'
     }
     
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'master', url: 'https://github.com/TrongNghiaFL1/SalesTSL.git'
-            }
-        }
-        
         stage('Build and Deploy') {
             steps {
                 script {
@@ -44,32 +38,4 @@ pipeline {
             }
         }
         
-        stage('Backup') {
-            steps {
-                script {
-                    // Tạo thư mục backup nếu chưa có
-                    sh 'sudo mkdir -p ${BACKUP_DIR}'
-                    
-                    // Chạy script backup
-                    sh '''
-                        chmod +x backup_script.sh
-                        ./backup_script.sh
-                    '''
-                }
-            }
-        }
-    }
-    
-    post {
-        always {
-            // Dọn dẹp workspace
-            cleanWs()
-        }
-        failure {
-            echo 'Deployment failed!'
-        }
-        success {
-            echo 'Deployment successful!'
-        }
-    }
-}
+        

@@ -12,25 +12,18 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./Source/taikhoan/database.sql:/docker-entrypoint-initdb.d/database.sql
+      - ./Source/taikhoan/database.sql:/docker-entrypoint-initdb.d/database.sql  # MySQL sẽ tự động import
     networks:
       - webnet
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
-
   php:
     build: .
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     volumes:
       - ./Source:/var/www/html
     networks:
       - webnet
-    restart: always
-
+    entrypoint: /bin/sh -c "until nc -z -v -w30 db 3306; do echo 'Waiting for MySQL...'; sleep 5; done; php-fpm"  # Chờ MySQL sẵn sàng
   nginx:
     image: nginx:stable
     depends_on:
@@ -42,16 +35,7 @@ services:
       - ./Source:/var/www/html:ro
     networks:
       - webnet
-    restart: always
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
 volumes:
   db_data:
-
 networks:
   webnet:
-    driver: bridge
