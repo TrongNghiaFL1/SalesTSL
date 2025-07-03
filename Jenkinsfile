@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         DOCKER_COMPOSE_FILE = 'docker-compose.yml'
-        BACKUP_DIR = '/var/backups/webapp'
+        BACKUP_DIR = "${WORKSPACE}/backups"
         PROJECT_NAME = 'webapp'
     }
     
@@ -41,17 +41,26 @@ pipeline {
         stage('Backup') {
             steps {
                 script {
-                    // Tạo thư mục backup nếu chưa có
-                    sh 'sudo mkdir -p ${BACKUP_DIR}'
+                    // Tạo thư mục backup trong workspace
+                    sh 'mkdir -p ${BACKUP_DIR}'
                     
-                    // Chạy script backup nếu có
+                    // Backup source code
                     sh '''
-                        if [ -f backup_script.sh ]; then
-                            chmod +x backup_script.sh
-                            ./backup_script.sh
-                        else
-                            echo "No backup script found, skipping backup"
+                        DATE=$(date +"%Y%m%d_%H%M%S")
+                        echo "Creating backup at ${BACKUP_DIR}/source_backup_${DATE}.tar.gz"
+                        tar -czf ${BACKUP_DIR}/source_backup_${DATE}.tar.gz ./Source
+                        
+                        # Backup database nếu container đang chạy
+                        if docker ps | grep -q mysql; then
+                            echo "Backing up database..."
+                            docker exec $(docker ps -q -f name=mysql) mysqldump -u root -prootpass web3 > ${BACKUP_DIR}/database_${DATE}.sql || echo "Database backup failed"
                         fi
+                        
+                        # Xóa backup cũ hơn 7 ngày
+                        find ${BACKUP_DIR} -type f -name "*backup*" -mtime +7 -delete || echo "No old backups to delete"
+                        
+                        echo "Backup completed!"
+                        ls -la ${BACKUP_DIR}
                     '''
                 }
             }
@@ -60,6 +69,8 @@ pipeline {
     
     post {
         always {
+            // Lưu backup artifacts
+            archiveArtifacts artifacts: 'backups/*', allowEmptyArchive: true
             cleanWs()
         }
         failure {
