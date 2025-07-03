@@ -1,16 +1,33 @@
 #!/bin/bash
-# Đặt timestamp cho tên file backup
-TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
 
-# Backup Docker container (nginx và php)
-docker commit salestsl-nginx-1 my-backup-nginx:$TIMESTAMP
-docker save -o ~/backups/my-backup-nginx-$TIMESTAMP.tar my-backup-nginx:$TIMESTAMP
+# Cấu hình
+BACKUP_DIR="/var/backups/webapp"
+DATE=$(date +"%Y%m%d_%H%M%S")
+PROJECT_NAME="webapp"
+RETENTION_DAYS=7
 
-docker commit salestsl-php-1 my-backup-php:$TIMESTAMP
-docker save -o ~/backups/my-backup-php-$TIMESTAMP.tar my-backup-php:$TIMESTAMP
+# Tạo thư mục backup
+sudo mkdir -p ${BACKUP_DIR}
 
-# Backup MySQL Database từ container MySQL
-docker exec salestsl-db-1 mysqldump -u webuser -pwebpass web3 > ~/backups/db-backup-$TIMESTAMP.sql
+echo "Starting backup process at $(date)"
 
-# Thông báo hoàn tất backup
-echo "Backup completed at $TIMESTAMP"
+# Backup database
+echo "Backing up database..."
+docker exec ${PROJECT_NAME}_db_1 mysqldump -u root -prootpass web3 > ${BACKUP_DIR}/database_${DATE}.sql
+
+# Backup source code và volumes
+echo "Backing up application data..."
+sudo tar -czf ${BACKUP_DIR}/app_data_${DATE}.tar.gz ./Source
+
+# Backup Docker images
+echo "Backing up Docker images..."
+docker save $(docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "(nginx|mysql|${PROJECT_NAME})") | gzip > ${BACKUP_DIR}/docker_images_${DATE}.tar.gz
+
+# Xóa các backup cũ hơn 7 ngày
+echo "Cleaning up old backups..."
+find ${BACKUP_DIR} -type f -name "*.sql" -mtime +${RETENTION_DAYS} -delete
+find ${BACKUP_DIR} -type f -name "*.tar.gz" -mtime +${RETENTION_DAYS} -delete
+
+echo "Backup completed at $(date)"
+echo "Backup files stored in: ${BACKUP_DIR}"
+ls -la ${BACKUP_DIR}
