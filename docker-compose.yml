@@ -18,6 +18,7 @@ services:
 
   php:
     build: .
+    image: salestsl-php-1
     depends_on:
       - db
     volumes:
